@@ -2,7 +2,6 @@ package borsh_test
 
 import (
 	"github.com/ouromoros/borsh-go"
-	"log"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -14,11 +13,8 @@ func TestFuzz(t *testing.T) {
 
 	for i := 0; i < 1000; i++ {
 		st := fuzzType(r1, 0)
-		log.Print(i, st)
 		for j := 0; j < 10; j++ {
 			val := fuzzValue(r1, st)
-			log.Print(i, j, val)
-
 			testValue(t, val)
 		}
 	}

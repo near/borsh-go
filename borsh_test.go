@@ -84,6 +84,7 @@ func TestBasicContainer(t *testing.T) {
 		A3: [3]int{234, -123, 123},
 		S:  []int{21442, 421241241, 2424},
 		P:  ip,
+		M:  make(map[string]string),
 	}
 	data, err := Serialize(x)
 	if err != nil {
@@ -124,6 +125,7 @@ func TestNested(t *testing.T) {
 			A3: [3]int{234, -123, 123},
 			S:  []int{21442, 421241241, 2424},
 			P:  ip,
+			M:  make(map[string]string),
 		},
 	}
 	data, err := Serialize(x)
