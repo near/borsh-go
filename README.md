@@ -3,19 +3,27 @@
 ## Example
 
 ```go
-import "github.com/ouromoros/borsh-go"
+package demo
+
+import (
+	"github.com/ouromoros/borsh-go"
+	"log"
+	"reflect"
+	"testing"
+)
 
 type A struct {
-    x uint64,
-    y string,
+	X uint64
+	Y string
 }
 
-func testSimple() {
-    x := A{
-        x: 3301,
-        y: "liber primus",
-    }
+func TestSimple(t *testing.T) {
+	x := A{
+		X: 3301,
+		Y: "liber primus",
+	}
 	data, err := borsh.Serialize(x)
+	log.Print(data)
 	if err != nil {
 		t.Error(err)
 	}
@@ -28,4 +36,5 @@ func testSimple() {
 		t.Error(x, y)
 	}
 }
+
 ```
