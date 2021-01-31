@@ -2,36 +2,13 @@ package borsh
 
 import (
 	"reflect"
+	strings2 "strings"
 	"testing"
 )
 
 type A struct {
 	A int
 	B int32
-}
-
-type B struct {
-	I8  int8
-	I16 int16
-	I32 int32
-	I64 int64
-	U8  uint8
-	U16 uint16
-	U32 uint32
-	U64 uint64
-	F32 float32
-	F64 float64
-}
-
-type C struct {
-	A3 [3]int
-	S  []int
-	P  *int
-}
-
-type N struct {
-	B B
-	C C
 }
 
 func TestSimple(t *testing.T) {
@@ -51,6 +28,19 @@ func TestSimple(t *testing.T) {
 	if !reflect.DeepEqual(x, *y) {
 		t.Error(x, y)
 	}
+}
+
+type B struct {
+	I8  int8
+	I16 int16
+	I32 int32
+	I64 int64
+	U8  uint8
+	U16 uint16
+	U32 uint32
+	U64 uint64
+	F32 float32
+	F64 float64
 }
 
 func TestBasic(t *testing.T) {
@@ -80,6 +70,13 @@ func TestBasic(t *testing.T) {
 	}
 }
 
+type C struct {
+	A3 [3]int
+	S  []int
+	P  *int
+	M  map[string]string
+}
+
 func TestBasicContainer(t *testing.T) {
 	ip := new(int)
 	*ip = 213
@@ -100,6 +97,11 @@ func TestBasicContainer(t *testing.T) {
 	if !reflect.DeepEqual(x, *y) {
 		t.Error(x, y)
 	}
+}
+
+type N struct {
+	B B
+	C C
 }
 
 func TestNested(t *testing.T) {
@@ -216,5 +218,87 @@ func TestSkipped(t *testing.T) {
 	}
 	if y.B == x.B {
 		t.Errorf("didn't skip field B")
+	}
+}
+
+type E struct{}
+
+func TestEmpty(t *testing.T) {
+	x := E{}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data) != 0 {
+		t.Error("not empty")
+	}
+	y := new(E)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Error(x, y)
+	}
+}
+
+func testValue(t *testing.T, v interface{}) {
+	data, err := Serialize(v)
+	if err != nil {
+		t.Error(err)
+	}
+	parsed := reflect.New(reflect.TypeOf(v))
+	err = Deserialize(parsed.Interface(), data)
+	if err != nil {
+		t.Error(err)
+	}
+	reflect.DeepEqual(v, parsed.Elem().Interface())
+}
+
+func TestStrings(t *testing.T) {
+	tests := []struct {
+		in string
+	}{
+		{""},
+		{"a"},
+		{"hellow world"},
+		{strings2.Repeat("x", 1024)},
+		{strings2.Repeat("x", 4096)},
+		{strings2.Repeat("x", 65535)},
+		{strings2.Repeat("hello world!", 1000)},
+		{"💩"},
+	}
+
+	for _, tt := range tests {
+		testValue(t, tt.in)
+	}
+}
+
+func makeInt32Slice(val int32, len int) []int32 {
+	s := make([]int32, len)
+	for i := 0; i < len; i++ {
+		s[i] = val
+	}
+	return s
+}
+
+func TestSlices(t *testing.T) {
+	tests := []struct {
+		in []int32
+	}{
+		{makeInt32Slice(1000000000, 0)},
+		{makeInt32Slice(1000000000, 1)},
+		{makeInt32Slice(1000000000, 2)},
+		{makeInt32Slice(1000000000, 3)},
+		{makeInt32Slice(1000000000, 4)},
+		{makeInt32Slice(1000000000, 8)},
+		{makeInt32Slice(1000000000, 16)},
+		{makeInt32Slice(1000000000, 32)},
+		{makeInt32Slice(1000000000, 64)},
+		{makeInt32Slice(1000000000, 65)},
+	}
+
+	for _, tt := range tests {
+		testValue(t, tt.in)
 	}
 }

@@ -135,6 +135,9 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 			return nil, err
 		}
 		l := int(binary.LittleEndian.Uint32(tmp))
+		if l == 0 {
+			return "", nil
+		}
 		tmp2, err := read(r, l)
 		if err != nil {
 			return nil, err
@@ -159,6 +162,9 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		}
 		l := int(binary.LittleEndian.Uint32(tmp))
 		a := reflect.New(t).Elem()
+		if l == 0 {
+			return a.Interface(), nil
+		}
 		for i := 0; i < l; i++ {
 			av, err := deserialize(t.Elem(), r)
 			if err != nil {
@@ -174,6 +180,9 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		}
 		l := int(binary.LittleEndian.Uint32(tmp))
 		m := reflect.MakeMap(t)
+		if l == 0 {
+			return m.Interface(), nil
+		}
 		for i := 0; i < l; i++ {
 			k, err := deserialize(t.Key(), r)
 			if err != nil {
