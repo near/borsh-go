@@ -167,3 +167,25 @@ func TestEnum(t *testing.T) {
 		t.Error(x, y)
 	}
 }
+
+type S struct {
+	S map[int]struct{}
+}
+
+func TestSet(t *testing.T) {
+	x := S{
+		S: map[int]struct{}{124: struct{}{}, 214: struct{}{}, 24: struct{}{}, 53: struct{}{}},
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	y := new(S)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Error(x, y)
+	}
+}

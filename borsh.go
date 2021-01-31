@@ -36,9 +36,7 @@ func read(r *bytes.Reader, n int) ([]byte, error) {
 }
 
 func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
-	var enum Enum
-	var set Set
-	if t.ConvertibleTo(reflect.TypeOf(enum)) {
+	if t.Kind() == reflect.Uint8 {
 		tmp, err := read(r, 1)
 		if err != nil {
 			return nil, err
@@ -46,8 +44,6 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		e := reflect.New(t)
 		e.Elem().Set(reflect.ValueOf(uint8(tmp[0])).Convert(t))
 		return e.Elem().Interface(), nil
-	} else if reflect.TypeOf(set) == reflect.TypeOf(set) {
-		// TODO: Implement Set
 	}
 
 	switch t.Kind() {
@@ -177,7 +173,7 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 			return nil, err
 		}
 		l := int(binary.LittleEndian.Uint32(tmp))
-		m := reflect.New(t)
+		m := reflect.MakeMap(t)
 		for i := 0; i < l; i++ {
 			k, err := deserialize(t.Key(), r)
 			if err != nil {
@@ -189,7 +185,7 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 			}
 			m.SetMapIndex(reflect.ValueOf(k), reflect.ValueOf(v))
 		}
-		return m, nil
+		return m.Interface(), nil
 	case reflect.Ptr:
 		tmp, err := read(r, 1)
 		if err != nil {
@@ -345,6 +341,10 @@ func serialize(v reflect.Value, b *bytes.Buffer) error {
 		b.Write(tmp)
 		keys := v.MapKeys()
 		sort.Slice(keys, vComp(keys))
+		for _, k := range keys {
+			serialize(k, b)
+			serialize(v.MapIndex(k), b)
+		}
 	case reflect.Ptr:
 		if v.IsNil() {
 			b.WriteByte(0)
@@ -367,6 +367,10 @@ func serialize(v reflect.Value, b *bytes.Buffer) error {
 func vComp(keys []reflect.Value) func(int, int) bool {
 	return func(i int, j int) bool {
 		a, b := keys[i], keys[j]
+		if a.Kind() == reflect.Interface {
+			a = a.Elem()
+			b = b.Elem()
+		}
 		switch a.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			return a.Int() < b.Int()
