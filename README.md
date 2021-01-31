@@ -55,7 +55,7 @@ import (
 type A struct {
 	X uint64
 	Y string
-    Z string `borsh_skip:"true"` // will skip this field when serializing/deserializing
+	Z string `borsh_skip:"true"` // will skip this field when serializing/deserializing
 }
 
 func TestSimple(t *testing.T) {
