@@ -36,6 +36,20 @@ func read(r *bytes.Reader, n int) ([]byte, error) {
 }
 
 func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
+	var enum Enum
+	var set Set
+	if t.ConvertibleTo(reflect.TypeOf(enum)) {
+		tmp, err := read(r, 1)
+		if err != nil {
+			return nil, err
+		}
+		e := reflect.New(t)
+		e.Elem().Set(reflect.ValueOf(uint8(tmp[0])).Convert(t))
+		return e.Elem().Interface(), nil
+	} else if reflect.TypeOf(set) == reflect.TypeOf(set) {
+		// TODO: Implement Set
+	}
+
 	switch t.Kind() {
 	case reflect.Int8:
 		tmp, err := read(r, 1)
@@ -201,13 +215,6 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		return s, nil
 	}
 
-	var e Enum
-	var s Set
-	if t.AssignableTo(reflect.TypeOf(e)) {
-		// TODO: Implement Enum
-	} else if t.AssignableTo(reflect.TypeOf(s)) {
-		// TODO: Implement Set
-	}
 	return nil, nil
 }
 
@@ -281,7 +288,7 @@ func serialize(v reflect.Value, b *bytes.Buffer) error {
 		binary.LittleEndian.PutUint64(tmp, uint64(v.Interface().(int)))
 		b.Write(tmp)
 	case reflect.Uint8:
-		b.WriteByte(byte(v.Interface().(uint8)))
+		b.WriteByte(byte(v.Uint()))
 	case reflect.Uint16:
 		tmp := make([]byte, 2)
 		binary.LittleEndian.PutUint16(tmp, v.Interface().(uint16))
@@ -353,14 +360,6 @@ func serialize(v reflect.Value, b *bytes.Buffer) error {
 		if err != nil {
 			return err
 		}
-	}
-	t := v.Type()
-	var e Enum
-	var s Set
-	if t.AssignableTo(reflect.TypeOf(e)) {
-		// TODO: Implement Enum
-	} else if t.AssignableTo(reflect.TypeOf(s)) {
-		// TODO: Implement Set
 	}
 	return nil
 }

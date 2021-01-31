@@ -137,3 +137,33 @@ func TestNested(t *testing.T) {
 		t.Error(x, y)
 	}
 }
+
+type Dummy Enum
+
+const (
+	x Dummy = iota
+	y
+	z
+)
+
+type D struct {
+	D Dummy
+}
+
+func TestEnum(t *testing.T) {
+	x := D{
+		D: y,
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	y := new(D)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Error(x, y)
+	}
+}
