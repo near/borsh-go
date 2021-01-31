@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"log"
 	"math"
 	"reflect"
 	"sort"
@@ -253,7 +252,6 @@ func serializeStruct(v reflect.Value, b *bytes.Buffer) error {
 	}
 	sort.Strings(fields)
 	for _, field := range fields {
-		log.Print(field)
 		err := serialize(v.Field(fieldMap[field]), b)
 		if err != nil {
 			return err
@@ -263,7 +261,6 @@ func serializeStruct(v reflect.Value, b *bytes.Buffer) error {
 }
 
 func serialize(v reflect.Value, b *bytes.Buffer) error {
-	log.Print(v.Interface())
 	switch v.Kind() {
 	case reflect.Int8:
 		b.WriteByte(byte(v.Interface().(int8)))

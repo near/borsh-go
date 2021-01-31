@@ -29,6 +29,11 @@ type C struct {
 	P  *int
 }
 
+type N struct {
+	B B
+	C C
+}
+
 func TestSimple(t *testing.T) {
 	x := A{
 		A: 1,
@@ -88,6 +93,42 @@ func TestBasicContainer(t *testing.T) {
 		t.Error(err)
 	}
 	y := new(C)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Error(x, y)
+	}
+}
+
+func TestNested(t *testing.T) {
+	ip := new(int)
+	*ip = 213
+	x := N{
+		B: B{
+			I8:  12,
+			I16: -1,
+			I32: 124,
+			I64: 1243,
+			U8:  1,
+			U16: 979,
+			U32: 123124,
+			U64: 1135351135,
+			F32: -231.23,
+			F64: 3121221.232,
+		},
+		C: C{
+			A3: [3]int{234, -123, 123},
+			S:  []int{21442, 421241241, 2424},
+			P:  ip,
+		},
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	y := new(N)
 	err = Deserialize(y, data)
 	if err != nil {
 		t.Error(err)
