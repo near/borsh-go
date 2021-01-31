@@ -125,17 +125,17 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		len := int(binary.LittleEndian.Uint32(tmp))
-		tmp2, err := read(r, len)
+		l := int(binary.LittleEndian.Uint32(tmp))
+		tmp2, err := read(r, l)
 		if err != nil {
 			return nil, err
 		}
 		s := string(tmp2)
 		return s, nil
 	case reflect.Array:
-		len := t.Len()
+		l := t.Len()
 		a := reflect.New(t).Elem()
-		for i := 0; i < len; i++ {
+		for i := 0; i < l; i++ {
 			av, err := deserialize(t.Elem(), r)
 			if err != nil {
 				return nil, err
@@ -148,14 +148,14 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		len := int(binary.LittleEndian.Uint32(tmp))
+		l := int(binary.LittleEndian.Uint32(tmp))
 		a := reflect.New(t).Elem()
-		for i := 0; i < len; i++ {
+		for i := 0; i < l; i++ {
 			av, err := deserialize(t.Elem(), r)
 			if err != nil {
 				return nil, err
 			}
-			a.Index(i).Set(reflect.ValueOf(av))
+			a = reflect.Append(a, reflect.ValueOf(av))
 		}
 		return a.Interface(), nil
 	case reflect.Map:
@@ -163,9 +163,9 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		len := int(binary.LittleEndian.Uint32(tmp))
+		l := int(binary.LittleEndian.Uint32(tmp))
 		m := reflect.New(t)
-		for i := 0; i < len; i++ {
+		for i := 0; i < l; i++ {
 			k, err := deserialize(t.Key(), r)
 			if err != nil {
 				return nil, err
@@ -186,13 +186,13 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		if valid == 0 {
 			return nil, nil
 		} else {
-			p := reflect.New(t)
+			p := reflect.New(t.Elem())
 			deref, err := deserialize(t.Elem(), r)
 			if err != nil {
 				return nil, err
 			}
 			p.Elem().Set(reflect.ValueOf(deref))
-			return p, nil
+			return p.Interface(), nil
 		}
 	case reflect.Struct:
 		s, err := deserializeStruct(t, r)
