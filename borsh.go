@@ -202,7 +202,8 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 		}
 		valid := uint8(tmp[0])
 		if valid == 0 {
-			return nil, nil
+			p := reflect.New(t.Elem())
+			return p.Interface(), nil
 		} else {
 			p := reflect.New(t.Elem())
 			de, err := deserialize(t.Elem(), r)
@@ -399,6 +400,8 @@ func vComp(keys []reflect.Value) func(int, int) bool {
 			return a.Int() < b.Int()
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			return a.Uint() < b.Uint()
+		case reflect.Float32, reflect.Float64:
+			return a.Float() < b.Float()
 		case reflect.String:
 			return a.String() < b.String()
 		}
