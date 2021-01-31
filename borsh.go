@@ -205,11 +205,11 @@ func deserialize(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 			return nil, nil
 		} else {
 			p := reflect.New(t.Elem())
-			deref, err := deserialize(t.Elem(), r)
+			de, err := deserialize(t.Elem(), r)
 			if err != nil {
 				return nil, err
 			}
-			p.Elem().Set(reflect.ValueOf(deref))
+			p.Elem().Set(reflect.ValueOf(de))
 			return p.Interface(), nil
 		}
 	case reflect.Struct:
@@ -359,8 +359,14 @@ func serialize(v reflect.Value, b *bytes.Buffer) error {
 		keys := v.MapKeys()
 		sort.Slice(keys, vComp(keys))
 		for _, k := range keys {
-			serialize(k, b)
-			serialize(v.MapIndex(k), b)
+			err := serialize(k, b)
+			if err != nil {
+				return err
+			}
+			err = serialize(v.MapIndex(k), b)
+			if err != nil {
+				return err
+			}
 		}
 	case reflect.Ptr:
 		if v.IsNil() {
