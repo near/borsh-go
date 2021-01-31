@@ -189,3 +189,32 @@ func TestSet(t *testing.T) {
 		t.Error(x, y)
 	}
 }
+
+type Skipped struct {
+	A int
+	B int `borsh_skip:"true"`
+	C int
+}
+
+func TestSkipped(t *testing.T) {
+	x := Skipped{
+		A: 32,
+		B: 535,
+		C: 123,
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	y := new(Skipped)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	if x.A != y.A || x.C != y.C {
+		t.Errorf("%v fields not equal to %v", x, y)
+	}
+	if y.B == x.B {
+		t.Errorf("didn't skip field B")
+	}
+}

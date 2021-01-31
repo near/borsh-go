@@ -220,9 +220,14 @@ func deserializeStruct(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 	fieldMap := make(map[string]int)
 	fields := make([]string, 0)
 	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i).Name
-		fieldMap[field] = i
-		fields = append(fields, field)
+		field := t.Field(i)
+		name := field.Name
+		tag := field.Tag
+		if tag.Get("borsh_skip") == "true" {
+			continue
+		}
+		fieldMap[name] = i
+		fields = append(fields, name)
 	}
 	sort.Strings(fields)
 	for _, field := range fields {
@@ -249,9 +254,12 @@ func serializeStruct(v reflect.Value, b *bytes.Buffer) error {
 	fieldMap := make(map[string]int)
 	fields := make([]string, 0)
 	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i).Name
-		fieldMap[field] = i
-		fields = append(fields, field)
+		field := t.Field(i)
+		if field.Tag.Get("borsh_skip") == "true" {
+			continue
+		}
+		fieldMap[field.Name] = i
+		fields = append(fields, field.Name)
 	}
 	sort.Strings(fields)
 	for _, field := range fields {
