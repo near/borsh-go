@@ -396,10 +396,14 @@ func vComp(keys []reflect.Value) func(int, int) bool {
 			b = b.Elem()
 		}
 		switch a.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 			return a.Int() < b.Int()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		case reflect.Int64:
+			return a.Interface().(int64) < b.Interface().(int64)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
 			return a.Uint() < b.Uint()
+		case reflect.Uint64:
+			return a.Interface().(uint64) < b.Interface().(uint64)
 		case reflect.Float32, reflect.Float64:
 			return a.Float() < b.Float()
 		case reflect.String:
