@@ -12,31 +12,6 @@ safety, speed, and comes with a strict specification.
 - Based on Go Reflection. Avoids the need for create protocol file and code generation. Simply
 defining `struct` and go.
 
-## Type Mappings
-
-Borsh                 | Go           |  Description
---------------------- | -------------- |--------
-`u8` integer          | `uint8`        | 
-`u16` integer         | `uint16`       |
-`u32` integer         | `uint32`       |
-`u64` integer         | `uint64`       |
-`u128` integer        |            |  Not supported yet
-`i8` integer          | `int8`        | 
-`i16` integer         | `int16`       |
-`i32` integer         | `int32`       |
-`i64` integer         | `int64`       |
-`i128` integer        |            |  Not supported yet
-`f32` float           | `float32`      |
-`f64` float           | `float64`      |
-fixed-size array      | `[size]type`   |  go array
-dynamic-size array    |  `[]type`      |  go slice
-string                | `string`       |
-option                |  `*type`         |   go pointer
-map                   |   `map`          |
-set                   |   `map[type]struct{}`  | go map with value type set to `struct{}`
-structs               |   `struct`      |
-enum                  |   `borsh.Enum`  |    use `type MyEnum borsh.Enum` to define enum type
-
 
 ## Usage
 
@@ -80,3 +55,28 @@ func TestSimple(t *testing.T) {
 ```
 
 For more examples of usage, refer to `borsh_test.go`.
+
+## Type Mappings
+
+Borsh                 | Go           |  Description
+--------------------- | -------------- |--------
+`u8` integer          | `uint8`        | 
+`u16` integer         | `uint16`       |
+`u32` integer         | `uint32`       |
+`u64` integer         | `uint64`       |
+`u128` integer        |            |  Not supported yet
+`i8` integer          | `int8`        | 
+`i16` integer         | `int16`       |
+`i32` integer         | `int32`       |
+`i64` integer         | `int64`       |
+`i128` integer        |            |  Not supported yet
+`f32` float           | `float32`      |
+`f64` float           | `float64`      |
+fixed-size array      | `[size]type`   |  go array
+dynamic-size array    |  `[]type`      |  go slice
+string                | `string`       |
+option                |  `*type`         |   go pointer
+map                   |   `map`          |
+set                   |   `map[type]struct{}`  | go map with value type set to `struct{}`
+structs               |   `struct`      |
+enum                  |   `borsh.Enum`  |    use `type MyEnum borsh.Enum` to define enum type
