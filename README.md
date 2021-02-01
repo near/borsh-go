@@ -78,3 +78,5 @@ func TestSimple(t *testing.T) {
 	}
 }
 ```
+
+For more examples of usage, refer to `borsh_test.go`.
