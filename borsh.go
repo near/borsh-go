@@ -9,6 +9,8 @@ import (
 	"sort"
 )
 
+// Deserialize `data` according to the schema of `s`, and store the value into it. `s` must be a pointer type variable
+// that points to the original schema of `data`.
 func Deserialize(s interface{}, data []byte) error {
 	reader := bytes.NewReader(data)
 	v := reflect.ValueOf(s)
@@ -251,6 +253,9 @@ func deserializeStruct(t reflect.Type, r *bytes.Reader) (interface{}, error) {
 	return v.Interface(), nil
 }
 
+// Serialize `s` into bytes according to Borsh's specification(https://borsh.io/).
+//
+// The type mapping can be found at https://github.com/ouromoros/borsh-go.
 func Serialize(s interface{}) ([]byte, error) {
 	result := new(bytes.Buffer)
 
