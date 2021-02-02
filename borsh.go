@@ -309,6 +309,7 @@ func serialize(v reflect.Value, b io.Writer) error {
 		binary.LittleEndian.PutUint64(tmp, uint64(v.Interface().(int)))
 		_, err = b.Write(tmp)
 	case reflect.Uint8:
+		// user-defined Enum type is also uint8, so can't directly assert type here
 		_, err = b.Write([]byte{byte(v.Uint())})
 	case reflect.Uint16:
 		tmp := make([]byte, 2)
