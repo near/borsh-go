@@ -3,6 +3,7 @@ package borsh_test
 import (
 	"github.com/ouromoros/borsh-go"
 	"math/rand"
+	"reflect"
 	"testing"
 )
 
@@ -84,8 +85,9 @@ func BenchmarkFuzzDeserialize(t *testing.B) {
 		st := fuzzType(r1, 0)
 		val := fuzzValue(r1, st)
 		data, _ := borsh.Serialize(val)
+		valPtr := reflect.New(reflect.TypeOf(val)).Interface()
 		for j := 0; j < t.N; j++ {
-			_ = borsh.Deserialize(val, data)
+			_ = borsh.Deserialize(valPtr, data)
 		}
 	}
 }

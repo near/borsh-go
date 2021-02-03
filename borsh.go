@@ -15,10 +15,11 @@ import (
 func Deserialize(s interface{}, data []byte) error {
 	reader := bytes.NewReader(data)
 	v := reflect.ValueOf(s)
+	p := newPool()
 	if v.Kind() != reflect.Ptr {
 		return errors.New("passed struct must be pointer")
 	}
-	result, err := deserialize(reflect.TypeOf(s).Elem(), reader)
+	result, err := deserialize(reflect.TypeOf(s).Elem(), reader, p)
 	if err != nil {
 		return err
 	}
@@ -26,8 +27,13 @@ func Deserialize(s interface{}, data []byte) error {
 	return nil
 }
 
-func read(r io.Reader, n int) ([]byte, error) {
-	b := make([]byte, n)
+func read(r io.Reader, n int, p *pool) ([]byte, error) {
+	var b []byte
+	if n <= 8 {
+		b = p.getBytes(n)
+	} else {
+		b = make([]byte, n)
+	}
 	l, err := r.Read(b)
 	if l != n {
 		return nil, errors.New("failed to read required bytes")
@@ -38,9 +44,9 @@ func read(r io.Reader, n int) ([]byte, error) {
 	return b, nil
 }
 
-func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
+func deserialize(t reflect.Type, r io.Reader, p *pool) (interface{}, error) {
 	if t.Kind() == reflect.Uint8 {
-		tmp, err := read(r, 1)
+		tmp, err := read(r, 1, p)
 		if err != nil {
 			return nil, err
 		}
@@ -51,67 +57,67 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 
 	switch t.Kind() {
 	case reflect.Int8:
-		tmp, err := read(r, 1)
+		tmp, err := read(r, 1, p)
 		if err != nil {
 			return nil, err
 		}
 		return int8(tmp[0]), nil
 	case reflect.Int16:
-		tmp, err := read(r, 2)
+		tmp, err := read(r, 2, p)
 		if err != nil {
 			return nil, err
 		}
 		return int16(binary.LittleEndian.Uint16(tmp)), nil
 	case reflect.Int32:
-		tmp, err := read(r, 4)
+		tmp, err := read(r, 4, p)
 		if err != nil {
 			return nil, err
 		}
 		return int32(binary.LittleEndian.Uint32(tmp)), nil
 	case reflect.Int64:
-		tmp, err := read(r, 8)
+		tmp, err := read(r, 8, p)
 		if err != nil {
 			return nil, err
 		}
 		return int64(binary.LittleEndian.Uint64(tmp)), nil
 	case reflect.Int:
-		tmp, err := read(r, 8)
+		tmp, err := read(r, 8, p)
 		if err != nil {
 			return nil, err
 		}
 		return int(binary.LittleEndian.Uint64(tmp)), nil
 	case reflect.Uint8:
-		tmp, err := read(r, 1)
+		tmp, err := read(r, 1, p)
 		if err != nil {
 			return nil, err
 		}
 		return uint8(tmp[0]), nil
 	case reflect.Uint16:
-		tmp, err := read(r, 2)
+		tmp, err := read(r, 2, p)
 		if err != nil {
 			return nil, err
 		}
 		return uint16(binary.LittleEndian.Uint16(tmp)), nil
 	case reflect.Uint32:
-		tmp, err := read(r, 4)
+		tmp, err := read(r, 4, p)
 		if err != nil {
 			return nil, err
 		}
 		return uint32(binary.LittleEndian.Uint32(tmp)), nil
 	case reflect.Uint64:
-		tmp, err := read(r, 8)
+		tmp, err := read(r, 8, p)
 		if err != nil {
 			return nil, err
 		}
 		return uint64(binary.LittleEndian.Uint64(tmp)), nil
 	case reflect.Uint:
-		tmp, err := read(r, 8)
+		tmp, err := read(r, 8, p)
 		if err != nil {
 			return nil, err
 		}
 		return uint(binary.LittleEndian.Uint64(tmp)), nil
 	case reflect.Float32:
-		tmp, err := read(r, 4)
+		tmp, err := read(r, 4, p)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +128,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		}
 		return f, nil
 	case reflect.Float64:
-		tmp, err := read(r, 8)
+		tmp, err := read(r, 8, p)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +139,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		}
 		return f, nil
 	case reflect.String:
-		tmp, err := read(r, 4)
+		tmp, err := read(r, 4, p)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +147,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		if l == 0 {
 			return "", nil
 		}
-		tmp2, err := read(r, l)
+		tmp2, err := read(r, l, p)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +157,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		l := t.Len()
 		a := reflect.New(t).Elem()
 		for i := 0; i < l; i++ {
-			av, err := deserialize(t.Elem(), r)
+			av, err := deserialize(t.Elem(), r, p)
 			if err != nil {
 				return nil, err
 			}
@@ -159,7 +165,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		}
 		return a.Interface(), nil
 	case reflect.Slice:
-		tmp, err := read(r, 4)
+		tmp, err := read(r, 4, p)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +175,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 			return a.Interface(), nil
 		}
 		for i := 0; i < l; i++ {
-			av, err := deserialize(t.Elem(), r)
+			av, err := deserialize(t.Elem(), r, p)
 			if err != nil {
 				return nil, err
 			}
@@ -177,7 +183,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		}
 		return a.Interface(), nil
 	case reflect.Map:
-		tmp, err := read(r, 4)
+		tmp, err := read(r, 4, p)
 		if err != nil {
 			return nil, err
 		}
@@ -187,11 +193,11 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 			return m.Interface(), nil
 		}
 		for i := 0; i < l; i++ {
-			k, err := deserialize(t.Key(), r)
+			k, err := deserialize(t.Key(), r, p)
 			if err != nil {
 				return nil, err
 			}
-			v, err := deserialize(t.Elem(), r)
+			v, err := deserialize(t.Elem(), r, p)
 			if err != nil {
 				return nil, err
 			}
@@ -199,7 +205,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		}
 		return m.Interface(), nil
 	case reflect.Ptr:
-		tmp, err := read(r, 1)
+		tmp, err := read(r, 1, p)
 		if err != nil {
 			return nil, err
 		}
@@ -208,16 +214,16 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 			p := reflect.New(t.Elem())
 			return p.Interface(), nil
 		} else {
-			p := reflect.New(t.Elem())
-			de, err := deserialize(t.Elem(), r)
+			ptr := reflect.New(t.Elem())
+			de, err := deserialize(t.Elem(), r, p)
 			if err != nil {
 				return nil, err
 			}
-			p.Elem().Set(reflect.ValueOf(de))
-			return p.Interface(), nil
+			ptr.Elem().Set(reflect.ValueOf(de))
+			return ptr.Interface(), nil
 		}
 	case reflect.Struct:
-		s, err := deserializeStruct(t, r)
+		s, err := deserializeStruct(t, r, p)
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +233,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 	return nil, nil
 }
 
-func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
+func deserializeStruct(t reflect.Type, r io.Reader, p *pool) (interface{}, error) {
 	v := reflect.New(t).Elem()
 
 	fieldMap := make(map[string]int)
@@ -244,7 +250,7 @@ func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
 	}
 	sort.Strings(fields)
 	for _, field := range fields {
-		fv, err := deserialize(t.Field(fieldMap[field]).Type, r)
+		fv, err := deserialize(t.Field(fieldMap[field]).Type, r, p)
 		if err != nil {
 			return nil, err
 		}

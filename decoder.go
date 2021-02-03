@@ -8,10 +8,12 @@ import (
 
 type Decoder struct {
 	r io.Reader
+	p *pool
 }
 
 func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{r: r}
+	p := newPool()
+	return &Decoder{r: r, p: p}
 }
 
 func (d *Decoder) Decode(s interface{}) error {
@@ -19,7 +21,7 @@ func (d *Decoder) Decode(s interface{}) error {
 	if t.Kind() != reflect.Ptr {
 		return errors.New("argument must be pointer")
 	}
-	val, err := deserialize(t, d.r)
+	val, err := deserialize(t, d.r, d.p)
 	if err != nil {
 		return nil
 	}
