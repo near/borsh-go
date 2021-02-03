@@ -259,12 +259,13 @@ func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
 // The type mapping can be found at https://github.com/ouromoros/borsh-go.
 func Serialize(s interface{}) ([]byte, error) {
 	result := new(bytes.Buffer)
+	p := newPool()
 
-	err := serialize(reflect.ValueOf(s), result)
+	err := serialize(reflect.ValueOf(s), result, p)
 	return result.Bytes(), err
 }
 
-func serializeStruct(v reflect.Value, b io.Writer) error {
+func serializeStruct(v reflect.Value, b io.Writer, p *pool) error {
 	t := v.Type()
 
 	fieldMap := make(map[string]int)
@@ -279,7 +280,7 @@ func serializeStruct(v reflect.Value, b io.Writer) error {
 	}
 	sort.Strings(fields)
 	for _, field := range fields {
-		err := serialize(v.Field(fieldMap[field]), b)
+		err := serialize(v.Field(fieldMap[field]), b, p)
 		if err != nil {
 			return err
 		}
@@ -287,44 +288,44 @@ func serializeStruct(v reflect.Value, b io.Writer) error {
 	return nil
 }
 
-func serialize(v reflect.Value, b io.Writer) error {
+func serialize(v reflect.Value, b io.Writer, p *pool) error {
 	var err error
 	switch v.Kind() {
 	case reflect.Int8:
 		_, err = b.Write([]byte{byte((v.Interface().(int8)))})
 	case reflect.Int16:
-		tmp := make([]byte, 2)
+		tmp := p.getBytes(2)
 		binary.LittleEndian.PutUint16(tmp, uint16(v.Interface().(int16)))
 		_, err = b.Write(tmp)
 	case reflect.Int32:
-		tmp := make([]byte, 4)
+		tmp := p.getBytes(4)
 		binary.LittleEndian.PutUint32(tmp, uint32(v.Interface().(int32)))
 		_, err = b.Write(tmp)
 	case reflect.Int64:
-		tmp := make([]byte, 8)
+		tmp := p.getBytes(8)
 		binary.LittleEndian.PutUint64(tmp, uint64(v.Interface().(int64)))
 		_, err = b.Write(tmp)
 	case reflect.Int:
-		tmp := make([]byte, 8)
+		tmp := p.getBytes(8)
 		binary.LittleEndian.PutUint64(tmp, uint64(v.Interface().(int)))
 		_, err = b.Write(tmp)
 	case reflect.Uint8:
 		// user-defined Enum type is also uint8, so can't directly assert type here
 		_, err = b.Write([]byte{byte(v.Uint())})
 	case reflect.Uint16:
-		tmp := make([]byte, 2)
+		tmp := p.getBytes(2)
 		binary.LittleEndian.PutUint16(tmp, v.Interface().(uint16))
 		_, err = b.Write(tmp)
 	case reflect.Uint32:
-		tmp := make([]byte, 4)
+		tmp := p.getBytes(4)
 		binary.LittleEndian.PutUint32(tmp, v.Interface().(uint32))
 		_, err = b.Write(tmp)
 	case reflect.Uint64, reflect.Uint:
-		tmp := make([]byte, 8)
+		tmp := p.getBytes(8)
 		binary.LittleEndian.PutUint64(tmp, v.Uint())
 		_, err = b.Write(tmp)
 	case reflect.Float32:
-		tmp := make([]byte, 4)
+		tmp := p.getBytes(4)
 		f := v.Float()
 		if f == math.NaN() {
 			return errors.New("NaN float value")
@@ -332,7 +333,7 @@ func serialize(v reflect.Value, b io.Writer) error {
 		binary.LittleEndian.PutUint32(tmp, math.Float32bits(float32(f)))
 		_, err = b.Write(tmp)
 	case reflect.Float64:
-		tmp := make([]byte, 8)
+		tmp := p.getBytes(8)
 		f := v.Float()
 		if f == math.NaN() {
 			return errors.New("NaN float value")
@@ -340,7 +341,7 @@ func serialize(v reflect.Value, b io.Writer) error {
 		binary.LittleEndian.PutUint64(tmp, math.Float64bits(f))
 		_, err = b.Write(tmp)
 	case reflect.String:
-		tmp := make([]byte, 4)
+		tmp := p.getBytes(4)
 		binary.LittleEndian.PutUint32(tmp, uint32(len(v.String())))
 		_, err = b.Write(tmp)
 		if err != nil {
@@ -349,26 +350,26 @@ func serialize(v reflect.Value, b io.Writer) error {
 		_, err = b.Write([]byte(v.String()))
 	case reflect.Array:
 		for i := 0; i < v.Len(); i++ {
-			err = serialize(v.Index(i), b)
+			err = serialize(v.Index(i), b, p)
 			if err != nil {
 				break
 			}
 		}
 	case reflect.Slice:
-		tmp := make([]byte, 4)
+		tmp := p.getBytes(4)
 		binary.LittleEndian.PutUint32(tmp, uint32(v.Len()))
 		_, err = b.Write(tmp)
 		if err != nil {
 			break
 		}
 		for i := 0; i < v.Len(); i++ {
-			err = serialize(v.Index(i), b)
+			err = serialize(v.Index(i), b, p)
 			if err != nil {
 				break
 			}
 		}
 	case reflect.Map:
-		tmp := make([]byte, 4)
+		tmp := p.getBytes(4)
 		binary.LittleEndian.PutUint32(tmp, uint32(v.Len()))
 		_, err = b.Write(tmp)
 		if err != nil {
@@ -377,11 +378,11 @@ func serialize(v reflect.Value, b io.Writer) error {
 		keys := v.MapKeys()
 		sort.Slice(keys, vComp(keys))
 		for _, k := range keys {
-			err = serialize(k, b)
+			err = serialize(k, b, p)
 			if err != nil {
 				break
 			}
-			err = serialize(v.MapIndex(k), b)
+			err = serialize(v.MapIndex(k), b, p)
 		}
 	case reflect.Ptr:
 		if v.IsNil() {
@@ -391,10 +392,10 @@ func serialize(v reflect.Value, b io.Writer) error {
 			if err != nil {
 				break
 			}
-			err = serialize(v.Elem(), b)
+			err = serialize(v.Elem(), b, p)
 		}
 	case reflect.Struct:
-		err = serializeStruct(v, b)
+		err = serializeStruct(v, b, p)
 	}
 	return err
 }
