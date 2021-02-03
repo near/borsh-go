@@ -37,7 +37,7 @@ func BenchmarkDeserialize(t *testing.B) {
 		t.Error(err)
 	}
 	y := new(B)
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < t.N; i++ {
 		err = borsh.Deserialize(y, data)
 		if err != nil {
 			t.Error(err)
@@ -58,7 +58,7 @@ func BenchmarkSerialize(t *testing.B) {
 		F32: -231.23,
 		F64: 3121221.232,
 	}
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < t.N; i++ {
 		_, _ = borsh.Serialize(x)
 	}
 }
@@ -70,7 +70,7 @@ func BenchmarkFuzzSerialize(t *testing.B) {
 	for i := 0; i < 100; i++ {
 		st := fuzzType(r1, 0)
 		val := fuzzValue(r1, st)
-		for j := 0; j < 1000; j++ {
+		for j := 0; j < t.N; j++ {
 			_, _ = borsh.Serialize(val)
 		}
 	}
@@ -84,7 +84,7 @@ func BenchmarkFuzzDeserialize(t *testing.B) {
 		st := fuzzType(r1, 0)
 		val := fuzzValue(r1, st)
 		data, _ := borsh.Serialize(val)
-		for j := 0; j < 1000; j++ {
+		for j := 0; j < t.N; j++ {
 			_ = borsh.Deserialize(val, data)
 		}
 	}
