@@ -1,5 +1,7 @@
 # borsh-go
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/near/borsh-go.svg)](https://pkg.go.dev/github.com/near/borsh-go)
+
 **borsh-go** is an implementation of the [Borsh] binary serialization format for Go
 projects.
 
