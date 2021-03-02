@@ -1,3 +1,3 @@
-module github.com/ouromoros/borsh-go
+module github.com/near/borsh-go
 
 go 1.15

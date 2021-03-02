@@ -21,10 +21,11 @@ defining `struct` and go.
 package demo
 
 import (
-	"github.com/ouromoros/borsh-go"
 	"log"
 	"reflect"
 	"testing"
+
+	"github.com/near/borsh-go"
 )
 
 type A struct {
