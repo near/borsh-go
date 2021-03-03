@@ -1,9 +1,10 @@
 package borsh_test
 
 import (
-	"github.com/ouromoros/borsh-go"
 	"math/rand"
 	"testing"
+
+	"github.com/near/borsh-go"
 )
 
 type B struct {

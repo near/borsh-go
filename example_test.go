@@ -2,9 +2,10 @@ package borsh_test
 
 import (
 	"bytes"
-	"github.com/ouromoros/borsh-go"
 	"log"
 	"strings"
+
+	"github.com/near/borsh-go"
 )
 
 type A struct {
