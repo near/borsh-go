@@ -272,25 +272,18 @@ func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
 
 	v := reflect.New(t).Elem()
 
-	fieldMap := make(map[string]int)
-	fields := make([]string, 0)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		name := field.Name
 		tag := field.Tag
 		if tag.Get("borsh_skip") == "true" {
 			continue
 		}
-		fieldMap[name] = i
-		fields = append(fields, name)
-	}
-	sort.Strings(fields)
-	for _, field := range fields {
-		fv, err := deserialize(t.Field(fieldMap[field]).Type, r)
+
+		fv, err := deserialize(t.Field(i).Type, r)
 		if err != nil {
 			return nil, err
 		}
-		v.Field(fieldMap[field]).Set(reflect.ValueOf(fv))
+		v.Field(i).Set(reflect.ValueOf(fv))
 	}
 
 	return v.Interface(), nil
@@ -352,19 +345,12 @@ func serializeStruct(v reflect.Value, b io.Writer) error {
 		}
 	}
 
-	fieldMap := make(map[string]int)
-	fields := make([]string, 0)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		if field.Tag.Get("borsh_skip") == "true" {
 			continue
 		}
-		fieldMap[field.Name] = i
-		fields = append(fields, field.Name)
-	}
-	sort.Strings(fields)
-	for _, field := range fields {
-		err := serialize(v.Field(fieldMap[field]), b)
+		err := serialize(v.Field(i), b)
 		if err != nil {
 			return err
 		}
