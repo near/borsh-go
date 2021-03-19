@@ -154,7 +154,7 @@ type D struct {
 	D Dummy
 }
 
-func TestEnum(t *testing.T) {
+func TestSimpleEnum(t *testing.T) {
 	x := D{
 		D: y,
 	}
@@ -169,6 +169,44 @@ func TestEnum(t *testing.T) {
 	}
 	if !reflect.DeepEqual(x, *y) {
 		t.Error(x, y)
+	}
+}
+
+type ComplexEnum struct {
+	Enum Enum `borsh_enum:"true"`
+	Foo  Foo
+	Bar  Bar
+}
+
+type Foo struct {
+	FooA int32
+	FooB string
+}
+
+type Bar struct {
+	BarA int64
+	BarB string
+}
+
+func TestComplexEnum(t *testing.T) {
+	x := ComplexEnum{
+		Enum: 0,
+		Foo: Foo{
+			FooA: 23,
+			FooB: "baz",
+		},
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	y := new(ComplexEnum)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Fatal(x, y)
 	}
 }
 

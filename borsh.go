@@ -227,7 +227,40 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 	return nil, nil
 }
 
+func deserializeComplexEnum(t reflect.Type, r io.Reader) (interface{}, error) {
+	v := reflect.New(t).Elem()
+	// read enum identifier
+	tmp, err := read(r, 1)
+	if err != nil {
+		return nil, err
+	}
+	enum := Enum(tmp[0])
+	v.Field(0).Set(reflect.ValueOf(enum))
+	// read enum field, if necessary
+	if int(enum)+1 >= t.NumField() {
+		return nil, errors.New("complex enum too large")
+	}
+	fv, err := deserialize(t.Field(int(enum)+1).Type, r)
+	if err != nil {
+		return nil, err
+	}
+	v.Field(int(enum) + 1).Set(reflect.ValueOf(fv))
+
+	return v.Interface(), nil
+}
+
 func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
+	// handle complex enum, if necessary
+	if t.NumField() > 0 {
+		// if the first field has type borsh.Enum and is flagged with "borsh_enum"
+		// we have a complex enum
+		firstField := t.Field(0)
+		if firstField.Type.Kind() == reflect.Uint8 &&
+			firstField.Tag.Get("borsh_enum") == "true" {
+			return deserializeComplexEnum(t, r)
+		}
+	}
+
 	v := reflect.New(t).Elem()
 
 	fieldMap := make(map[string]int)
@@ -264,8 +297,37 @@ func Serialize(s interface{}) ([]byte, error) {
 	return result.Bytes(), err
 }
 
+func serializeComplexEnum(v reflect.Value, b io.Writer) error {
+	t := v.Type()
+	enum := Enum(v.Field(0).Uint())
+	// write enum identifier
+	if _, err := b.Write([]byte{byte(enum)}); err != nil {
+		return err
+	}
+	// write enum field, if necessary
+	if int(enum)+1 >= t.NumField() {
+		return errors.New("complex enum too large")
+	}
+	field := v.Field(int(enum) + 1)
+	if field.Kind() == reflect.Struct {
+		return serializeStruct(field, b)
+	}
+	return nil
+}
+
 func serializeStruct(v reflect.Value, b io.Writer) error {
 	t := v.Type()
+
+	// handle complex enum, if necessary
+	if t.NumField() > 0 {
+		// if the first field has type borsh.Enum and is flagged with "borsh_enum"
+		// we have a complex enum
+		firstField := t.Field(0)
+		if firstField.Type.Kind() == reflect.Uint8 &&
+			firstField.Tag.Get("borsh_enum") == "true" {
+			return serializeComplexEnum(v, b)
+		}
+	}
 
 	fieldMap := make(map[string]int)
 	fields := make([]string, 0)
