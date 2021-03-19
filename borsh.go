@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"math/big"
 	"reflect"
 	"sort"
 )
@@ -217,11 +218,19 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 			return p.Interface(), nil
 		}
 	case reflect.Struct:
-		s, err := deserializeStruct(t, r)
-		if err != nil {
-			return nil, err
+		if t == reflect.TypeOf(*big.NewInt(0)) {
+			s, err := deserializeUint128(t, r)
+			if err != nil {
+				return nil, err
+			}
+			return s, nil
+		} else {
+			s, err := deserializeStruct(t, r)
+			if err != nil {
+				return nil, err
+			}
+			return s, nil
 		}
-		return s, nil
 	}
 
 	return nil, nil
@@ -287,6 +296,20 @@ func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
 	return v.Interface(), nil
 }
 
+func deserializeUint128(t reflect.Type, r io.Reader) (interface{}, error) {
+	d, err := read(r, 16)
+	if err != nil {
+		return nil, err
+	}
+	// make it big-endian
+	for i, j := 0, 15; i < j; i, j = i+1, j-1 {
+		d[i], d[j] = d[j], d[i]
+	}
+	var u big.Int
+	u.SetBytes(d[:])
+	return u, nil
+}
+
 // Serialize `s` into bytes according to Borsh's specification(https://borsh.io/).
 //
 // The type mapping can be found at https://github.com/near/borsh-go.
@@ -347,6 +370,23 @@ func serializeStruct(v reflect.Value, b io.Writer) error {
 		}
 	}
 	return nil
+}
+
+func serializeUint128(v reflect.Value, b io.Writer) error {
+	u := v.Interface().(big.Int)
+	buf := u.Bytes()
+	if len(buf) > 16 {
+		return errors.New("big.Int too large for u128")
+	}
+	// fill big-endian buffer
+	var d [16]byte
+	copy(d[16-len(buf):], buf)
+	// make it little-endian
+	for i, j := 0, 15; i < j; i, j = i+1, j-1 {
+		d[i], d[j] = d[j], d[i]
+	}
+	_, err := b.Write(d[:])
+	return err
 }
 
 func serialize(v reflect.Value, b io.Writer) error {
@@ -456,7 +496,11 @@ func serialize(v reflect.Value, b io.Writer) error {
 			err = serialize(v.Elem(), b)
 		}
 	case reflect.Struct:
-		err = serializeStruct(v, b)
+		if v.Type() == reflect.TypeOf(*big.NewInt(0)) {
+			err = serializeUint128(v, b)
+		} else {
+			err = serializeStruct(v, b)
+		}
 	}
 	return err
 }

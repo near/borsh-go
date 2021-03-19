@@ -1,6 +1,8 @@
 package borsh
 
 import (
+	"math"
+	"math/big"
 	"reflect"
 	strings2 "strings"
 	"testing"
@@ -336,6 +338,22 @@ func TestSlices(t *testing.T) {
 		{makeInt32Slice(1000000000, 32)},
 		{makeInt32Slice(1000000000, 64)},
 		{makeInt32Slice(1000000000, 65)},
+	}
+
+	for _, tt := range tests {
+		testValue(t, tt.in)
+	}
+}
+
+func TestUint128(t *testing.T) {
+	tests := []struct {
+		in big.Int
+	}{
+		{*big.NewInt(23)},
+		{*big.NewInt(math.MaxInt16)},
+		{*big.NewInt(math.MaxInt32)},
+		{*big.NewInt(math.MaxInt64)},
+		{*big.NewInt(0).Mul(big.NewInt(math.MaxInt64), big.NewInt(math.MaxInt64))},
 	}
 
 	for _, tt := range tests {
