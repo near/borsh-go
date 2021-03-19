@@ -67,7 +67,7 @@ Borsh                 | Go           |  Description
 `u16` integer         | `uint16`       |
 `u32` integer         | `uint32`       |
 `u64` integer         | `uint64`       |
-`u128` integer        |            |  Not supported yet
+`u128` integer        | `big.Int`  |
 `i8` integer          | `int8`        | 
 `i16` integer         | `int16`       |
 `i32` integer         | `int32`       |

@@ -1,6 +1,8 @@
 package borsh
 
 import (
+	"math"
+	"math/big"
 	"reflect"
 	strings2 "strings"
 	"testing"
@@ -154,7 +156,7 @@ type D struct {
 	D Dummy
 }
 
-func TestEnum(t *testing.T) {
+func TestSimpleEnum(t *testing.T) {
 	x := D{
 		D: y,
 	}
@@ -169,6 +171,44 @@ func TestEnum(t *testing.T) {
 	}
 	if !reflect.DeepEqual(x, *y) {
 		t.Error(x, y)
+	}
+}
+
+type ComplexEnum struct {
+	Enum Enum `borsh_enum:"true"`
+	Foo  Foo
+	Bar  Bar
+}
+
+type Foo struct {
+	FooA int32
+	FooB string
+}
+
+type Bar struct {
+	BarA int64
+	BarB string
+}
+
+func TestComplexEnum(t *testing.T) {
+	x := ComplexEnum{
+		Enum: 0,
+		Foo: Foo{
+			FooA: 23,
+			FooB: "baz",
+		},
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	y := new(ComplexEnum)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Fatal(x, y)
 	}
 }
 
@@ -298,6 +338,22 @@ func TestSlices(t *testing.T) {
 		{makeInt32Slice(1000000000, 32)},
 		{makeInt32Slice(1000000000, 64)},
 		{makeInt32Slice(1000000000, 65)},
+	}
+
+	for _, tt := range tests {
+		testValue(t, tt.in)
+	}
+}
+
+func TestUint128(t *testing.T) {
+	tests := []struct {
+		in big.Int
+	}{
+		{*big.NewInt(23)},
+		{*big.NewInt(math.MaxInt16)},
+		{*big.NewInt(math.MaxInt32)},
+		{*big.NewInt(math.MaxInt64)},
+		{*big.NewInt(0).Mul(big.NewInt(math.MaxInt64), big.NewInt(math.MaxInt64))},
 	}
 
 	for _, tt := range tests {

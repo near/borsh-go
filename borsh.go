@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"math/big"
 	"reflect"
 	"sort"
 )
@@ -217,41 +218,89 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 			return p.Interface(), nil
 		}
 	case reflect.Struct:
-		s, err := deserializeStruct(t, r)
-		if err != nil {
-			return nil, err
+		if t == reflect.TypeOf(*big.NewInt(0)) {
+			s, err := deserializeUint128(t, r)
+			if err != nil {
+				return nil, err
+			}
+			return s, nil
+		} else {
+			s, err := deserializeStruct(t, r)
+			if err != nil {
+				return nil, err
+			}
+			return s, nil
 		}
-		return s, nil
 	}
 
 	return nil, nil
 }
 
+func deserializeComplexEnum(t reflect.Type, r io.Reader) (interface{}, error) {
+	v := reflect.New(t).Elem()
+	// read enum identifier
+	tmp, err := read(r, 1)
+	if err != nil {
+		return nil, err
+	}
+	enum := Enum(tmp[0])
+	v.Field(0).Set(reflect.ValueOf(enum))
+	// read enum field, if necessary
+	if int(enum)+1 >= t.NumField() {
+		return nil, errors.New("complex enum too large")
+	}
+	fv, err := deserialize(t.Field(int(enum)+1).Type, r)
+	if err != nil {
+		return nil, err
+	}
+	v.Field(int(enum) + 1).Set(reflect.ValueOf(fv))
+
+	return v.Interface(), nil
+}
+
 func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
+	// handle complex enum, if necessary
+	if t.NumField() > 0 {
+		// if the first field has type borsh.Enum and is flagged with "borsh_enum"
+		// we have a complex enum
+		firstField := t.Field(0)
+		if firstField.Type.Kind() == reflect.Uint8 &&
+			firstField.Tag.Get("borsh_enum") == "true" {
+			return deserializeComplexEnum(t, r)
+		}
+	}
+
 	v := reflect.New(t).Elem()
 
-	fieldMap := make(map[string]int)
-	fields := make([]string, 0)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		name := field.Name
 		tag := field.Tag
 		if tag.Get("borsh_skip") == "true" {
 			continue
 		}
-		fieldMap[name] = i
-		fields = append(fields, name)
-	}
-	sort.Strings(fields)
-	for _, field := range fields {
-		fv, err := deserialize(t.Field(fieldMap[field]).Type, r)
+
+		fv, err := deserialize(t.Field(i).Type, r)
 		if err != nil {
 			return nil, err
 		}
-		v.Field(fieldMap[field]).Set(reflect.ValueOf(fv))
+		v.Field(i).Set(reflect.ValueOf(fv))
 	}
 
 	return v.Interface(), nil
+}
+
+func deserializeUint128(t reflect.Type, r io.Reader) (interface{}, error) {
+	d, err := read(r, 16)
+	if err != nil {
+		return nil, err
+	}
+	// make it big-endian
+	for i, j := 0, 15; i < j; i, j = i+1, j-1 {
+		d[i], d[j] = d[j], d[i]
+	}
+	var u big.Int
+	u.SetBytes(d[:])
+	return u, nil
 }
 
 // Serialize `s` into bytes according to Borsh's specification(https://borsh.io/).
@@ -264,27 +313,66 @@ func Serialize(s interface{}) ([]byte, error) {
 	return result.Bytes(), err
 }
 
+func serializeComplexEnum(v reflect.Value, b io.Writer) error {
+	t := v.Type()
+	enum := Enum(v.Field(0).Uint())
+	// write enum identifier
+	if _, err := b.Write([]byte{byte(enum)}); err != nil {
+		return err
+	}
+	// write enum field, if necessary
+	if int(enum)+1 >= t.NumField() {
+		return errors.New("complex enum too large")
+	}
+	field := v.Field(int(enum) + 1)
+	if field.Kind() == reflect.Struct {
+		return serializeStruct(field, b)
+	}
+	return nil
+}
+
 func serializeStruct(v reflect.Value, b io.Writer) error {
 	t := v.Type()
 
-	fieldMap := make(map[string]int)
-	fields := make([]string, 0)
+	// handle complex enum, if necessary
+	if t.NumField() > 0 {
+		// if the first field has type borsh.Enum and is flagged with "borsh_enum"
+		// we have a complex enum
+		firstField := t.Field(0)
+		if firstField.Type.Kind() == reflect.Uint8 &&
+			firstField.Tag.Get("borsh_enum") == "true" {
+			return serializeComplexEnum(v, b)
+		}
+	}
+
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		if field.Tag.Get("borsh_skip") == "true" {
 			continue
 		}
-		fieldMap[field.Name] = i
-		fields = append(fields, field.Name)
-	}
-	sort.Strings(fields)
-	for _, field := range fields {
-		err := serialize(v.Field(fieldMap[field]), b)
+		err := serialize(v.Field(i), b)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func serializeUint128(v reflect.Value, b io.Writer) error {
+	u := v.Interface().(big.Int)
+	buf := u.Bytes()
+	if len(buf) > 16 {
+		return errors.New("big.Int too large for u128")
+	}
+	// fill big-endian buffer
+	var d [16]byte
+	copy(d[16-len(buf):], buf)
+	// make it little-endian
+	for i, j := 0, 15; i < j; i, j = i+1, j-1 {
+		d[i], d[j] = d[j], d[i]
+	}
+	_, err := b.Write(d[:])
+	return err
 }
 
 func serialize(v reflect.Value, b io.Writer) error {
@@ -394,7 +482,11 @@ func serialize(v reflect.Value, b io.Writer) error {
 			err = serialize(v.Elem(), b)
 		}
 	case reflect.Struct:
-		err = serializeStruct(v, b)
+		if v.Type() == reflect.TypeOf(*big.NewInt(0)) {
+			err = serializeUint128(v, b)
+		} else {
+			err = serializeStruct(v, b)
+		}
 	}
 	return err
 }
