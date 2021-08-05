@@ -360,3 +360,48 @@ func TestUint128(t *testing.T) {
 		testValue(t, tt.in)
 	}
 }
+
+type Myu8 uint8
+type Myu16 uint16
+type Myu32 uint32
+type Myu64 uint64
+type Myi8 int8
+type Myi16 int16
+type Myi32 int32
+type Myi64 int64
+
+type CustomType struct {
+	U8  Myu8
+	U16 Myu16
+	U32 Myu32
+	U64 Myu64
+	I8  Myi8
+	I16 Myi16
+	I32 Myi32
+	I64 Myi64
+}
+
+func TestCustomType(t *testing.T) {
+	x := CustomType{
+		U8:  1,
+		U16: 2,
+		U32: 3,
+		U64: 4,
+		I8:  5,
+		I16: 6,
+		I32: 7,
+		I64: 8,
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	y := new(CustomType)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Error(x, y)
+	}
+}
