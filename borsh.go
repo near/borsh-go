@@ -283,7 +283,7 @@ func deserializeStruct(t reflect.Type, r io.Reader) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		v.Field(i).Set(reflect.ValueOf(fv))
+		v.Field(i).Set(reflect.ValueOf(fv).Convert(field.Type))
 	}
 
 	return v.Interface(), nil
@@ -379,18 +379,18 @@ func serialize(v reflect.Value, b io.Writer) error {
 	var err error
 	switch v.Kind() {
 	case reflect.Int8:
-		_, err = b.Write([]byte{byte((v.Interface().(int8)))})
+		_, err = b.Write([]byte{byte((v.Int()))})
 	case reflect.Int16:
 		tmp := make([]byte, 2)
-		binary.LittleEndian.PutUint16(tmp, uint16(v.Interface().(int16)))
+		binary.LittleEndian.PutUint16(tmp, uint16(v.Int()))
 		_, err = b.Write(tmp)
 	case reflect.Int32:
 		tmp := make([]byte, 4)
-		binary.LittleEndian.PutUint32(tmp, uint32(v.Interface().(int32)))
+		binary.LittleEndian.PutUint32(tmp, uint32(v.Int()))
 		_, err = b.Write(tmp)
 	case reflect.Int64:
 		tmp := make([]byte, 8)
-		binary.LittleEndian.PutUint64(tmp, uint64(v.Interface().(int64)))
+		binary.LittleEndian.PutUint64(tmp, uint64(v.Int()))
 		_, err = b.Write(tmp)
 	case reflect.Int:
 		tmp := make([]byte, 8)
@@ -401,11 +401,11 @@ func serialize(v reflect.Value, b io.Writer) error {
 		_, err = b.Write([]byte{byte(v.Uint())})
 	case reflect.Uint16:
 		tmp := make([]byte, 2)
-		binary.LittleEndian.PutUint16(tmp, v.Interface().(uint16))
+		binary.LittleEndian.PutUint16(tmp, uint16(v.Uint()))
 		_, err = b.Write(tmp)
 	case reflect.Uint32:
 		tmp := make([]byte, 4)
-		binary.LittleEndian.PutUint32(tmp, v.Interface().(uint32))
+		binary.LittleEndian.PutUint32(tmp, uint32(v.Uint()))
 		_, err = b.Write(tmp)
 	case reflect.Uint64, reflect.Uint:
 		tmp := make([]byte, 8)
