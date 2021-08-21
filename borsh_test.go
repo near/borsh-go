@@ -405,3 +405,27 @@ func TestCustomType(t *testing.T) {
 		t.Error(x, y)
 	}
 }
+
+type BoolStruct struct {
+	T bool
+	F bool
+}
+
+func TestBool(t *testing.T) {
+	x := BoolStruct{
+		T: true,
+		F: false,
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	y := new(BoolStruct)
+	err = Deserialize(y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(x, *y) {
+		t.Error(x, y)
+	}
+}

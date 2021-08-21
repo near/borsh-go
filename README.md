@@ -63,6 +63,7 @@ For more examples of usage, refer to `borsh_test.go`.
 
 Borsh                 | Go           |  Description
 --------------------- | -------------- |--------
+`bool`		      | `bool`	       |
 `u8` integer          | `uint8`        |
 `u16` integer         | `uint16`       |
 `u32` integer         | `uint32`       |

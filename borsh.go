@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"math/big"
@@ -51,6 +52,19 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 	}
 
 	switch t.Kind() {
+	case reflect.Bool:
+		tmp, err := read(r, 1)
+		if err != nil {
+			return nil, err
+		}
+		switch tmp[0] {
+		case 0:
+			return false, nil
+		case 1:
+			return true, nil
+		default:
+			return nil, fmt.Errorf("expected bool is 0 or 1, got %v", tmp[0])
+		}
 	case reflect.Int8:
 		tmp, err := read(r, 1)
 		if err != nil {
@@ -378,6 +392,12 @@ func serializeUint128(v reflect.Value, b io.Writer) error {
 func serialize(v reflect.Value, b io.Writer) error {
 	var err error
 	switch v.Kind() {
+	case reflect.Bool:
+		if v.Bool() {
+			_, err = b.Write([]byte{1})
+		} else {
+			_, err = b.Write([]byte{0})
+		}
 	case reflect.Int8:
 		_, err = b.Write([]byte{byte((v.Int()))})
 	case reflect.Int16:
