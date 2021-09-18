@@ -533,7 +533,7 @@ func vComp(keys []reflect.Value) func(int, int) bool {
 			return a.String() < b.String()
 		case reflect.Array:
 			if a.Len() != b.Len() {
-				return a.Len() < b.Len()
+				panic("array length must equal")
 			}
 			for i := 0; i < a.Len(); i++ {
 				result := Compare(a.Index(i), b.Index(i))
