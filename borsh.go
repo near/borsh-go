@@ -531,7 +531,109 @@ func vComp(keys []reflect.Value) func(int, int) bool {
 			return a.Float() < b.Float()
 		case reflect.String:
 			return a.String() < b.String()
+		case reflect.Array:
+			if a.Len() != b.Len() {
+				panic("array length must equal")
+			}
+			for i := 0; i < a.Len(); i++ {
+				result := Compare(a.Index(i), b.Index(i))
+				if result == 0 {
+					continue
+				}
+				return result < 0
+			}
+			return false
 		}
 		panic("unsupported key compare")
 	}
+}
+
+func Compare(a reflect.Value, b reflect.Value) int {
+	if a.Kind() == reflect.Interface {
+		a = a.Elem()
+		b = b.Elem()
+	}
+	switch a.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+		av := a.Int()
+		bv := b.Int()
+		switch {
+		case av < bv:
+			return -1
+		case av == bv:
+			return 0
+		case av > bv:
+			return 1
+		}
+	case reflect.Int64:
+		av := a.Interface().(int64)
+		bv := b.Interface().(int64)
+		switch {
+		case av < bv:
+			return -1
+		case av == bv:
+			return 0
+		case av > bv:
+			return 1
+		}
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		av := a.Uint()
+		bv := b.Uint()
+		switch {
+		case av < bv:
+			return -1
+		case av == bv:
+			return 0
+		case av > bv:
+			return 1
+		}
+	case reflect.Uint64:
+		av := a.Interface().(uint64)
+		bv := b.Interface().(uint64)
+		switch {
+		case av < bv:
+			return -1
+		case av == bv:
+			return 0
+		case av > bv:
+			return 1
+		}
+	case reflect.Float32, reflect.Float64:
+		av := a.Float()
+		bv := b.Float()
+		switch {
+		case av < bv:
+			return -1
+		case av == bv:
+			return 0
+		case av > bv:
+			return 1
+		}
+
+	case reflect.String:
+		av := a.String()
+		bv := b.String()
+		switch {
+		case av < bv:
+			return -1
+		case av == bv:
+			return 0
+		case av > bv:
+			return 1
+		}
+	case reflect.Array:
+		if a.Len() != b.Len() {
+			panic("array length must equal")
+		}
+		for i := 0; i < a.Len(); i++ {
+			result := Compare(a.Index(i), b.Index(i))
+			if result == 0 {
+				continue
+			}
+			return result
+		}
+		return 0
+	}
+	panic("unsupported key compare")
 }
