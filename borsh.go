@@ -507,6 +507,8 @@ func serialize(v reflect.Value, b io.Writer) error {
 		} else {
 			err = serializeStruct(v, b)
 		}
+	case reflect.Interface:
+		err = serialize(v.Elem(), b)
 	}
 	return err
 }

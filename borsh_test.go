@@ -1,6 +1,7 @@
 package borsh
 
 import (
+	"bytes"
 	"math"
 	"math/big"
 	"reflect"
@@ -452,4 +453,66 @@ func TestMap(t *testing.T) {
 		t.Error(m, n)
 	}
 
+}
+
+func TestInterface(t *testing.T) {
+	tests := []struct {
+		name string
+		data interface{}
+		want []byte
+	}{
+		{
+			name: "serialize struct",
+			data: struct {
+				Data uint8
+			}{
+				Data: 1,
+			},
+			want: []byte{1},
+		},
+		{
+			name: "serialize uint8 array",
+			data: struct {
+				Data []uint8
+			}{
+				Data: []uint8{1, 2, 3, 4},
+			},
+			want: []byte{4, 0, 0, 0, 1, 2, 3, 4},
+		},
+		{
+			name: "serialize interface array",
+			data: struct {
+				Data []interface{}
+			}{
+				Data: []interface{}{
+					uint8(1),
+					uint16(2),
+					uint32(3),
+					uint64(4),
+					struct {
+						Data uint8
+					}{
+						Data: 5,
+					},
+					struct {
+						Data []uint8
+					}{
+						Data: []uint8{6, 7, 8, 9},
+					},
+				},
+			},
+			want: []byte{6, 0, 0, 0, 1, 2, 0, 3, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 5, 4, 0, 0, 0, 6, 7, 8, 9},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b, err := Serialize(tt.data)
+			if err != nil {
+				t.Error(err)
+			}
+			if !bytes.Equal(b, tt.want) {
+				t.Errorf("want: %v, got: %v", tt.want, b)
+			}
+		})
+	}
 }
