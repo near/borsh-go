@@ -220,7 +220,7 @@ func deserialize(t reflect.Type, r io.Reader) (interface{}, error) {
 		}
 		valid := uint8(tmp[0])
 		if valid == 0 {
-			p := reflect.New(t.Elem())
+			p := reflect.Zero(t)
 			return p.Interface(), nil
 		} else {
 			p := reflect.New(t.Elem())

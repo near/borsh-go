@@ -453,3 +453,46 @@ func TestMap(t *testing.T) {
 	}
 
 }
+
+func TestPointer(t *testing.T) {
+	type s struct {
+		X *uint64
+	}
+
+	x := uint64(12345)
+	expected := s{X: &x}
+
+	bts, err := Serialize(expected)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(bts) != 9 {
+		t.Errorf("invalid len: expected 9 but got %d", len(bts))
+	}
+	if bts[0] != 1 {
+		t.Errorf("expected pointer byte to be 1")
+	}
+
+	var actual s
+	err = Deserialize(&actual, bts)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Error(actual, expected)
+	}
+
+	// nil case
+	expected = s{nil}
+
+	bts, err = Serialize(expected)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(bts) != 1 {
+		t.Errorf("invalid len: expected 1 but got %d", len(bts))
+	}
+	if bts[0] != 0 {
+		t.Errorf("expected pointer byte to be 0")
+	}
+}
