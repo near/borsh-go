@@ -393,7 +393,7 @@ func serialize(v reflect.Value, b io.Writer) error {
 	var err error
 	switch v.Kind() {
 	case reflect.Interface:
-		return serialize(v.Elem(), b)
+		err = serialize(v.Elem(), b)
 	case reflect.Bool:
 		if v.Bool() {
 			_, err = b.Write([]byte{1})
