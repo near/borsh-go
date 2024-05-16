@@ -496,3 +496,25 @@ func TestPointer(t *testing.T) {
 		t.Errorf("expected pointer byte to be 0")
 	}
 }
+
+func TestArrayInterface(t *testing.T) {
+	x := []interface{}{
+		1,
+		2,
+		3,
+	}
+	data, err := Serialize(x)
+	if err != nil {
+		t.Error(err)
+	}
+	y := make([]int, 3)
+	err = Deserialize(&y, data)
+	if err != nil {
+		t.Error(err)
+	}
+	for i, val := range x {
+		if !reflect.DeepEqual(val, y[i]) {
+			t.Error(i, val, y[i])
+		}
+	}
+}
