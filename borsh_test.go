@@ -507,7 +507,7 @@ func TestArrayInterface(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	y := make([]int, 3)
+	var y []int
 	err = Deserialize(&y, data)
 	if err != nil {
 		t.Error(err)
