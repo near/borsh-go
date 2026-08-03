@@ -21,7 +21,7 @@ func (d *Decoder) Decode(s interface{}) error {
 	}
 	val, err := deserialize(t, d.r)
 	if err != nil {
-		return nil
+		return err
 	}
 	reflect.ValueOf(s).Elem().Set(reflect.ValueOf(val))
 	return nil
