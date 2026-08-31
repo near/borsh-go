@@ -1,6 +1,8 @@
 package borsh
 
 import (
+	"bytes"
+	"io"
 	"math"
 	"math/big"
 	"reflect"
@@ -494,5 +496,68 @@ func TestPointer(t *testing.T) {
 	}
 	if bts[0] != 0 {
 		t.Errorf("expected pointer byte to be 0")
+	}
+}
+
+// oneByteReader returns data one byte per Read call — a legal io.Reader that
+// io.ReadFull handles but a single r.Read() does not.
+type oneByteReader struct {
+	data []byte
+	pos  int
+}
+
+func (o *oneByteReader) Read(p []byte) (int, error) {
+	if o.pos >= len(o.data) {
+		return 0, io.EOF
+	}
+	if len(p) == 0 {
+		return 0, nil
+	}
+	p[0] = o.data[o.pos]
+	o.pos++
+	return 1, nil
+}
+
+func TestDecoderDecodeRoundTrip(t *testing.T) {
+	// Regression: Decoder.Decode passed the pointer type (not Elem) to
+	// deserialize and then swallowed the resulting error (return nil), so it
+	// silently produced a zero value and reported success.
+	data, err := Serialize("hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s string
+	if err := NewDecoder(bytes.NewReader(data)).Decode(&s); err != nil {
+		t.Fatalf("Decode returned error: %v", err)
+	}
+	if s != "hello" {
+		t.Fatalf("Decode produced %q, want %q", s, "hello")
+	}
+}
+
+func TestDecoderDecodeReturnsErrorOnTruncatedInput(t *testing.T) {
+	data, err := Serialize("hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s string
+	if err := NewDecoder(bytes.NewReader(data[:2])).Decode(&s); err == nil {
+		t.Fatal("Decode swallowed the error on truncated input (returned nil)")
+	}
+}
+
+func TestDecoderDecodeChunkedReader(t *testing.T) {
+	// Regression: read() used r.Read (may return < n bytes) instead of
+	// io.ReadFull, so a valid streaming reader failed to decode.
+	data, err := Serialize("hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s string
+	if err := NewDecoder(&oneByteReader{data: data}).Decode(&s); err != nil {
+		t.Fatalf("chunked reader failed to decode a valid stream: %v", err)
+	}
+	if s != "hello" {
+		t.Fatalf("chunked decode produced %q, want %q", s, "hello")
 	}
 }

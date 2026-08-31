@@ -19,9 +19,9 @@ func (d *Decoder) Decode(s interface{}) error {
 	if t.Kind() != reflect.Ptr {
 		return errors.New("argument must be pointer")
 	}
-	val, err := deserialize(t, d.r)
+	val, err := deserialize(t.Elem(), d.r)
 	if err != nil {
-		return nil
+		return err
 	}
 	reflect.ValueOf(s).Elem().Set(reflect.ValueOf(val))
 	return nil
