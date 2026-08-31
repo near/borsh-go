@@ -30,11 +30,10 @@ func Deserialize(s interface{}, data []byte) error {
 
 func read(r io.Reader, n int) ([]byte, error) {
 	b := make([]byte, n)
-	l, err := r.Read(b)
-	if l != n {
-		return nil, errors.New("failed to read required bytes")
-	}
-	if err != nil {
+	// io.ReadFull handles readers that return data in multiple chunks (streams,
+	// network connections); a plain r.Read may return fewer than n bytes on a
+	// single call for a perfectly valid reader.
+	if _, err := io.ReadFull(r, b); err != nil {
 		return nil, err
 	}
 	return b, nil
