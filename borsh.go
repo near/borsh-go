@@ -28,7 +28,24 @@ func Deserialize(s interface{}, data []byte) error {
 	return nil
 }
 
+// remaining reports the number of unread bytes when r exposes a Len method
+// (as *bytes.Reader, the reader used by Deserialize, does). ok is false for
+// readers that do not, in which case callers skip the remaining-bytes guard.
+func remaining(r io.Reader) (n int, ok bool) {
+	if lr, has := r.(interface{ Len() int }); has {
+		return lr.Len(), true
+	}
+	return 0, false
+}
+
 func read(r io.Reader, n int) ([]byte, error) {
+	// Reject a declared length larger than the bytes actually available before
+	// allocating, so malicious input cannot force a huge up-front allocation
+	// (DoS). The String case in deserialize passes an attacker-controlled
+	// uint32 (up to ~4 GiB) straight into n.
+	if rem, ok := remaining(r); ok && n > rem {
+		return nil, errors.New("borsh: declared length exceeds remaining bytes")
+	}
 	b := make([]byte, n)
 	l, err := r.Read(b)
 	if l != n {
